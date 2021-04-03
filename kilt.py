@@ -1,3 +1,5 @@
+class kilt:
+    __version__ = 0.2
 import argparse
 import webbrowser
 import sys
@@ -16,8 +18,6 @@ def removekey(d, key):
 def main():
     ###sets arguments
     parser = argparse.ArgumentParser(description='Searches modrinth')
-    #meta
-    parser.add_argument("-dir","--directory",help="set working directory. Defaults to ./kiltDATA",default="kiltDATA")
     #output
     parser.add_argument("-ow","--openweb",help="Open the web browser for calls like --issues instead of just returning the URL",action="store_true")
     parser.add_argument("-m","--modjson",help="Return ONLY the mod json, not the entire search json. This overrides normal return data/",action="store_true")
@@ -25,7 +25,6 @@ def main():
     parser.add_argument("-no","--NOoutput",help="DOESN'T Display the result in console.  Use --fileoutput to save to a file",action="store_false")
     parser.add_argument("-f","--outputfile",help="Send the output to a file")
     #filters
-    parser.add_argument("-q","--search",help="Simply search modrith . -q stands for query",default="")
     parser.add_argument("-i","--index",help="How to filter the mods. (newest,updated,relevance,downloads)",default="newest")
     parser.add_argument("-p","--place",help="What location down the list to look for the mod?(default: 0 (top))",default=0,type=int)
     parser.add_argument("-l","--limit",help="Sets the number of mods that will be checked(default: 10)",default=10,type=int)
@@ -37,6 +36,10 @@ def main():
     # downloads
     parser.add_argument("-d","--download",help="Downloads the requested mod to the requesetd path.")
     parser.add_argument("-b","--body",action="store_true",help="Downloads the description.md file for the requested mod. Only really useful when you have a .md vewier, like Markdown View")
+    #meta
+    parser.add_argument("-dir","--directory",help="set working directory. Defaults to ./kiltDATA",default="kiltDATA")
+    parser.add_argument("-q","--search",help="Simply search modrith . -q stands for query",default="")
+    parser.add_argument("-v","--version",help="show current version and exit",action="store_true")
     ##completes settting of arguments
     args = parser.parse_args()
     #if no arguments are passed, show the help screen
@@ -44,12 +47,17 @@ def main():
         parser.print_help(sys.stderr)
         return "HELP"
     args=parser.parse_args()
+    if args.version:
+        print(kilt.__version__)
+        sys.exit("Kilt version is {ver}".format(ver=kilt.__version__))
     #print(args.download)
-    if not os.path.exists(args.directory):
-        os.makedirs(args.directory)
+    if not args.download is None and  os.path.exists(args.download):
+        print("Directory does not exist")
+        if __name__!="__main__":
+            return False
+        else:
+            sys.exit(2)
     os.chdir(args.directory)
-    if not os.path.exists("generated/mods"):
-        os.makedirs("generated/mods")
     if not os.path.exists("generated/meta"):
         os.makedirs("generated/meta")
     #sets up logging
@@ -75,7 +83,7 @@ def main():
     if args.place>=modSearchJson['total_hits']:
         logging.error("There are not THAT many in the search, set --limit in launch higher. Or that may be it all. NOTE THAT ARGS.PLACE WILL BE SET TO 0")
         args.place=0
-    valueToReturn=modJson
+    valueToReturn=safeModJson
     #output events
     if args.description:
         with open("generated/meta/descriptions.txt","a") as desc:
@@ -83,17 +91,18 @@ def main():
     #web events
     if args.open is not None:
        # print(args.open)
-        dict_of_pages= {
-            "home": "page_url",
+       dict_of_pages= {
             "issues": 'issues_url',
             "source": 'source_url',
             "wiki":'wiki_url',
             "discord":"discord_url",
             "donation":"donation_urls"
-            }
-        if args.openweb and modJson[dict_of_pages[args.open]] is not None:
-            webbrowser.open(modJson[dict_of_pages[args.open]])
-        valueToReturn=modJson[dict_of_pages[args.open]]
+         }
+       page =modJsonFake["page_url"] if args.open=="home" else modJson[dict_of_pages[args.open]]
+       
+       if args.openweb and page not in [None,[],""]:
+            webbrowser.open(page)
+       valueToReturn=page
 
     #downloads
     if args.download:
@@ -131,8 +140,8 @@ if __name__=="__main__":
         main()
     except (Exception,SystemExit) as e:
         if type(e)==SystemExit:
-            print("The process crashed with exit code {code}".format(code=e))
+            print(e)
         else:
-            traceback.format_exc(e)
+            traceback.format_exc(str(e))
             print(e)
             print("The process ran into an error. The error can be found in kilt.log")
