@@ -1,0 +1,6 @@
+kiltDATA/
+__pycache__/
+build/
+dist/
+.git/
+kilt.spec
