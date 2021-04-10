@@ -6,19 +6,26 @@ import logging
 import os
 import hashlib
 import semantic_version
-import kilt.errors
+import kilt.error
 from PIL import Image
 
-_site = "https://api.modrinth.com/api/v1/mod?query={}&limit={}&index={}&offset={}"
+# sets up logging
+logging.basicConfig()
 
 
 class VersionData:
-    __version__ = semantic_version.Version("0.1.0-alpha1+api.1")
+    __version__ = semantic_version.Version("0.1.0-alpha.2+labrinth.1")
     __major__ = __version__.major
     __minor__ = __version__.minor
     __patch__ = __version__.patch
     __prerelease__ = __version__.prerelease
     __build__ = __version__.build
+
+
+_site = "https://api.modrinth.com/api/v{}".format(VersionData.__build__[1])
+_query = _site + "/mod?query={}&limit={}&index={}&offset={}"
+_doc = "https://github.com/Jefaxe/Kilt/wiki"
+_pypi = None
 
 
 def alpha():
@@ -47,8 +54,9 @@ def release():
 
 
 class Mod:
-    def __init__(self, name, id, source, issues, desc, body, sha1=None, already_downloaded=False):
-        self.sha1 = sha1
+    def __init__(self, name, id, source, issues, desc, body):
+        self.sha1 = None
+        self.downloaded = False
         self.name = name
         self.body = self.long_desc = body
         self.desc = desc
@@ -58,8 +66,9 @@ class Mod:
         self.issues = issues
         try:
             self.version = \
-            json.loads(urllib.request.urlopen("https://api.modrinth.com/api/v1/mod/{}/version".format(self.id)).read())[
-                0]["version_number"]
+                json.loads(
+                    urllib.request.urlopen("https://api.modrinth.com/api/v1/mod/{}/version".format(self.id)).read())[
+                    0]["version_number"]
             self.loaders = \
                 json.loads(
                     urllib.request.urlopen("https://api.modrinth.com/api/v1/mod/{}/version".format(self.id)).read())[
@@ -72,10 +81,19 @@ class Mod:
             self.version = None
             self.loaders = []
             self.latest_mcversion = None
-        self.already_downloaded = already_downloaded
-        self.isFabric = True if "fabric" in self.loaders else False
-        self.isForge = True if "forge" in self.loaders else False
-    def web_open(self, siteType):
+        self.isFabric = self.is_fabric = True if "fabric" in self.loaders else False
+        self.isForge = self.is_fabric = True if "forge" in self.loaders else False
+
+    def save_icon(self, path=None, createTree=False):
+        if path is None:
+            path = "cache/"+self.name+".png"
+        icon_url = json.loads(urllib.request.urlopen(_site+"/mod/"+self.id).read())["icon_url"]
+        if createTree:
+            os.makedirs("".join(path.rsplit("/", 1)[:-1]))
+        with open(path, "wb") as file:
+            file.write(urllib.request.urlopen(icon_url).read())
+
+    def web_open(self, siteType="home"):
         if siteType == "home":
             webbrowser.open(self.home)
             return True
@@ -87,6 +105,55 @@ class Mod:
             return True
         else:
             return False
+
+    def download(self, download_folder="mods", specific_version=None):
+        # downloads
+        try:
+            os.makedirs(download_folder, exist_ok=True)
+            try:
+                if specific_version is not None:
+                    found = False
+                    index_value = 0
+                    for i in json.loads(urllib.request.urlopen(_site + "/mod/" + self.id + "/version").read()):
+                        logging.debug(i["version_number"])
+                        if i["version_number"] == specific_version:
+                            mod_version = json.loads(urllib.request.urlopen(_site + "/mod/" + self.id + "/version").read())[index_value][
+                                "files"][0]
+                            found = True
+                        index_value += 1
+                    if not found:
+                        raise kilt.error.SpecificVersionNotFound("{} is not a version of '{}'".format(specific_version, self.name))
+                else:
+                    mod_version = json.loads(urllib.request.urlopen(_site + "/mod/" + self.id + "/version").read())[0][
+                        "files"][0]
+                filename = mod_version["filename"]
+                downloadLink = mod_version[
+                        "url"]
+                self.sha1 = mod_version["hashes"][
+                        "sha1"]
+            except IndexError:
+                raise kilt.error.NoVersionFound("mod '{}' has no versions".format(self.name))
+            try:
+                if filename in os.listdir(download_folder):
+                    logging.debug(
+                        "[Kilt]{} is already downloaded (note we have only checked the filename, not the SHA1 hash".format(
+                            filename))
+            except UnboundLocalError:
+                pass
+            else:
+                logging.info(
+                    "[Kilt] Downloading {mod} from {url}".format(mod=self.name,
+                                                                 url=downloadLink))
+                downloadUrrlib = urllib.request.urlopen(downloadLink)
+                with open(download_folder + "/{mod}".format(mod=downloadLink.rsplit("/", 1)[-1]).replace("%20",
+                                                                                                         " "),
+                          "wb") as modsave:
+                    modsave.write(downloadUrrlib.read())
+            self.downloaded = True
+        except urllib.error.HTTPError as e:
+            logging.critical(
+                "[Labrinth] COULD NOT DOWNLOAD MOD {} from {} because {}".format(self.name,
+                                                                                 downloadLink, e))
 
 
 is_source = is_src = alpha
@@ -103,16 +170,6 @@ def get_sha1(filename):
             file_hash.update(fb)  # Update the hash
             fb = f.read(BLOCK_SIZE)  # Read the next block from the file
     return file_hash.hexdigest()  # Get the hexadecimal digest of the hash
-
-
-class ReturnValues:
-    mod_exists_already = "mod_exists_already"
-
-    # sets up logging
-    if not os.path.exists("logs/"):
-        os.mkdir("logs")
-    logging_format = '[%(filename)s][%(funcName)s/%(levelname)s] %(message)s'
-    logging.basicConfig(level=logging.DEBUG, filename="logs/debug.log", filemode="w", format=logging_format)
 
 
 def removekey(d, key):
@@ -141,7 +198,7 @@ def get_number_of_mods():
     there_are_more_mods = True
     i = 0
     while there_are_more_mods:
-        mod_list = json.loads(urllib.request.urlopen(_site.format("", 100, "newest", i * 100 + 1)).read())[
+        mod_list = json.loads(urllib.request.urlopen(_query.format("", 100, "newest", i * 100 + 1)).read())[
             "hits"]
         number_of_mods += len(mod_list)
         if len(mod_list) == 0:
@@ -151,42 +208,23 @@ def get_number_of_mods():
     return number_of_mods
 
 
-def search(search="", mod_id=None, id_array=[], saveIcon=False, logging_level=logging.INFO, crash=False, modlist=None,
-           filemode="w", openweb=False, output=True, outputfile=None, index="relevance",
+def search(search="", mod_id=None, saveIcon="dep", logging_level=logging.WARNING, modlist=None,
+           openweb="dep", index="relevance",
            offset=0,
-           limit=10, saveDescriptionToFile=None, web_save=None, download_folder=None, search_array=[],
-           repeat=1):
+           limit=10, saveDescriptionToFile=None, web_save="dep", search_array=[],
+           repeat=1, download_folder="dep"):
     # make sure arguments are correct
-    failed_mods = []
     MOD_OBJECTS = []
-    dict_of_pages = {
-        "issues": 'issues_url',
-        "source": 'source_url',
-        "wiki": 'wiki_url',
-        "discord": "discord_url",
-        "donation": "donation_urls"
-    }
     logger = logging.getLogger()
     logger.setLevel(logging_level)
-    if type(saveIcon) is not bool:
-        raise kilt.errors.InvalidArgument("{} (saveIcon) is not a boolean".format(saveIcon))
+    if index not in {"newest", "updated", "downloads", "relevance"}:
+        raise kilt.error.InvalidArgument("{} (index/sort) needs to be either 'newest', 'updated', 'downloads', or 'relevance'".format(index))
     if type(limit) is not int or limit not in list(range(0, 101)):
-        raise kilt.errors.InvalidArgument("{} (limit) is not in range 0, 100, or is not an integer.".format(limit))
-    if web_save not in list(dict_of_pages.keys()) and web_save not in {"home", None}:
-        raise kilt.errors.InvalidArgument(
-            "{} (web_save) is not in {}".format(web_save, (list(dict_of_pages.keys()), "home")))
-    if type(crash) is not bool:
-        raise kilt.errors.InvalidArgument("{} (crash) is not a boolean".format(crash))
-    if filemode not in {"w", "a"}:
-        raise kilt.errors.InvalidArgument("{} (filemode) is not in 'a' or 'w'".format(filemode))
-    if type(openweb) is not bool:
-        raise kilt.errors.InvalidArgument("{} (openweb) is not a boolean".format(openweb))
-    if type(output) is not bool:
-        raise kilt.errors.InvalidArgument("{} (output) is not a boolean".format(output))
+        raise kilt.error.InvalidArgument("{} (limit) is not in range 0, 100, or is not an integer.".format(limit))
     if type(offset) is not int or offset not in list(range(0, 101)):
-        raise kilt.errors.InvalidArgument("{} (offset) is not in range 0, 100, or it is not an integer".format(offset))
+        raise kilt.error.InvalidArgument("{} (offset) is not in range 0, 100, or it is not an integer".format(offset))
     if type(repeat) is not int or repeat <= 0:
-        raise kilt.errors.InvalidArgument("{} (repeat) is not an integer, or it is below 0.".format(repeat))
+        raise kilt.error.InvalidArgument("{} (repeat) is not an integer, or it is below 0.".format(repeat))
     ###
     # searching of mods
     ##
@@ -198,11 +236,13 @@ def search(search="", mod_id=None, id_array=[], saveIcon=False, logging_level=lo
     for i in search_array:
         patched_searches.append(i.replace(" ", "%20"))
     search_array = patched_searches
-    logging.info("Mods to search for: {}".format(" ,".join(search_array)))
+    logging.debug("Mods to search for: {}".format(" ,".join(search_array)))
     if saveDescriptionToFile is not None:
         with open(saveDescriptionToFile, "w") as file:
             file.write("Mod Descriptions\n")
     if modlist is not None:
+        if type(modlist) is bool and modlist:
+            modlist = "modlist.html"
         with open(modlist, "w") as file:
             file.write("""<!DOCTYPE html>
                         <html>
@@ -215,7 +255,7 @@ def search(search="", mod_id=None, id_array=[], saveIcon=False, logging_level=lo
         for this_search in search_array:
             logging.debug("Searching for {}".format(this_search))
             if mod_id is None:
-                modSearch = _site.format(this_search, limit, index, offset)
+                modSearch = _query.format(this_search, limit, index, offset)
                 modSearchJson = json.loads(urllib.request.urlopen(modSearch).read())
                 try:
                     logging.debug("{} is the {} in search_array".format(this_search, search_array.index(this_search)))
@@ -225,10 +265,10 @@ def search(search="", mod_id=None, id_array=[], saveIcon=False, logging_level=lo
                 except IndexError:
                     if offset == 0 and repeat == 1:
                         logging.info("There were no results for your search")
-                        raise kilt.errors.EndOfSearch("No results found for your query")
+                        raise kilt.error.EndOfSearch("No results found for your query")
                     elif offset == 0 and repeat != 1:
                         logging.info("You hit the end of your search!")
-                        raise kilt.errors.EndOfSearch(
+                        raise kilt.error.EndOfSearch(
                             "You attempted to access search result {} but {} was the max".format(offset + 1, offset))
                     else:
                         logging.info("Umm, you did a thing (I am confused at code)")
@@ -236,7 +276,10 @@ def search(search="", mod_id=None, id_array=[], saveIcon=False, logging_level=lo
             else:
                 modJsonURL = "https://api.modrinth.com/api/v1/mod/" + mod_id
             logging.debug("Mod json URL: {}".format(modJsonURL))
-            mod_struct = json.loads(urllib.request.urlopen(modJsonURL).read())
+            try:
+                mod_struct = json.loads(urllib.request.urlopen(modJsonURL).read())
+            except urllib.error.HTTPError:
+                raise kilt.error.InvalidModId("{} is not a valid modinth mod id".format(mod_id))
             mod_struct_minus_body = removekey(mod_struct, "body")
             mod_object = Mod(mod_struct_minus_body["title"], mod_struct_minus_body["id"],
                              mod_struct_minus_body["source_url"], mod_struct_minus_body["issues_url"],
@@ -267,72 +310,30 @@ def search(search="", mod_id=None, id_array=[], saveIcon=False, logging_level=lo
             if saveDescriptionToFile is not None:
                 with open(saveDescriptionToFile, "a") as desc:
                     desc.write(mod_struct_minus_body["title"] + ": " + mod_struct_minus_body["description"] + "\n")
-            # web events
-            if web_save is not None:
-                page = mod_response["page_url"] if web_save == "home" else mod_struct_minus_body[
-                    dict_of_pages[web_save]]
-                if openweb and page not in [None, [], ""]:
-                    webbrowser.open(page)
-                    logging.debug(
-                        "[Knosses] Opened {}'s {} page at {}".format(mod_struct_minus_body["title"], web_save, page))
-            try:
-                downloadLink = \
-                    json.loads(urllib.request.urlopen("{json}/version".format(json=modJsonURL)).read())[0]["files"][0][
-                        "url"].replace(" ", "%20")
-            except IndexError:
-                logging.error("mod {} does not have any versions, skipping...".format(mod_response["title"]))
-                downloadLink = "https://modrinth.com/download-was-not-found-by-kilt"
-                failed_mods.append(mod_response["title"])
-            # downloads
-            if download_folder is not None:
-                if type(download_folder) == bool and download_folder:
-                    download_folder = "mods"
-                try:
-                    os.makedirs(download_folder, exist_ok=True)
-                    try:
-                        filename = \
-                            json.loads(urllib.request.urlopen("{json}/version".format(json=modJsonURL)).read())[0][
-                                "files"][0][
-                                "filename"]
-                    except IndexError:
-                        logging.error("mod {} has no versions".format(mod_response["title"]))
-                    try:
-                        if filename in os.listdir(download_folder):
-                            logging.info(
-                                "[Kilt]{} is already downloaded (note we have only checked the filename, not the SHA1 hash".format(
-                                    filename))
-                            mod_object.already_downloaded = True
-                            mod_object.sha1 = get_sha1(
-                                download_folder + "/{mod}".format(mod=downloadLink.rsplit("/", 1)[-1]).replace("%20",
-                                                                                                               " "))
-                    except UnboundLocalError:
-                        pass
-                    else:
-                        logging.info(
-                            "[Kilt] Downloading {mod} from {url}".format(mod=mod_struct_minus_body["title"],
-                                                                         url=downloadLink))
-                        downloadUrrlib = urllib.request.urlopen(downloadLink)
-                        with open(download_folder + "/{mod}".format(mod=downloadLink.rsplit("/", 1)[-1]).replace("%20",
-                                                                                                                 " "),
-                                  "wb") as modsave:
-                            modsave.write(downloadUrrlib.read())
-                        mod_object.sha1 = get_sha1(
-                            download_folder + "/{mod}".format(mod=downloadLink.rsplit("/", 1)[-1]).replace("%20", " "))
-                except urllib.error.HTTPError as e:
-                    logging.critical(
-                        "[Labrinth] COULD NOT DOWNLOAD MOD {} from {} because {}".format(mod_response["title"],
-                                                                                         downloadLink, e))
-                    failed_mods.append(mod_response["title"])
+
             if modlist is not None:
                 with open(modlist, "a") as file:
                     file.write(
-                        "<image src={} width=64 height=64 alt={}><a href={}>{} (by {}):      </a><a href={}>Download<p></p>".format(
+                        "<image src={} width=64 height=64 alt={}><a href={}>{} (by {}):      </a>".format(
                             mod_struct_minus_body["icon_url"],
                             mod_struct_minus_body["title"],
                             mod_response["page_url"],
                             mod_struct_minus_body["title"],
-                            mod_response["author"],
-                            downloadLink))
+                            mod_response["author"]))
+            # deprecation warnings!
+            if download_folder != "dep":
+                logging.critical("DEPRECATION! DO NOT USE 'download_folder' ARGUMENT, USE METHOD `.download()` ON MOD OBJECT!  ")
+                if type(download_folder) is bool and download_folder:
+                    download_folder = "mods"
+                mod_object.download(download_folder=download_folder)
+            if web_save != "dep":
+                logging.critical("DEPRECATION! DO NOT USE 'web_save' ARGUMENT, USE `.home`, ect. ON MOD OBJECT")
+            if openweb != "dep":
+                logging.critical("DEPRECATION! DO NOT USE 'openweb' ARGUMENT, USE METHOD `.web_open()` ON MOD OBJECT")
+                mod_object.web_open(web_save)
+            if saveIcon != "dep":
+                logging.critical("DEPRECATION! DO NOT USE 'saveIcon' ARGUMENT, USE METHOD `.save_icon()` ON MOD OBJECT")
+                mod_object.save_icon()
         offset += 1
     if modlist is not None:
         with open(modlist, "a") as file:
@@ -349,5 +350,3 @@ if __name__ == "__main__":
             print(e)
         else:
             logging.error(traceback.format_exc())
-            print(e)
-            print("The process ran into an error. The error can be found in version_data.log")
