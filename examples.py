@@ -1,3 +1,5 @@
+import time
+
 import kilt
 import webbrowser
 
@@ -49,9 +51,11 @@ def correct_way():
 
 
 def search_array():
-    mods = kilt.search(search_array=["hydrogen", "galacticaft"])
+    mods = kilt.search(logging_level=0, search_array=["hydrogen", "galacticaft rewoven"])
     for mod in mods:
         print(mod.name)
 
 
+start = time.time()
 search_array()
+print(time.time()-start)

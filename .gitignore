@@ -1,4 +1,8 @@
 /mods/
 /logs/
-/downloadALL.py
 /__pycache__/
+/cache/
+/modlist.html
+/desc.txt
+/modlist.html
+
