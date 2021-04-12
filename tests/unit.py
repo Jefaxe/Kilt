@@ -4,7 +4,7 @@ import unittest
 import os
 import json
 os.chdir("..")
-import kilt
+
 
 
 class UnitTestsForKilt(unittest.TestCase):
@@ -27,7 +27,10 @@ class UnitTestsForKilt(unittest.TestCase):
             with open("tests/test-results.json") as res:
                 results = json.load(res)
             testName = self.id().replace("unit.UnitTestsForKilt.test_", "")
-            results[testName].append(elapsed)
+            try:
+                results[testName].append(elapsed)
+            except KeyError:
+                results.update({testName: [elapsed]})
             with open("tests/test-results.json", "w") as res:
                 json.dump(results, res, indent=4)
 
@@ -38,11 +41,10 @@ class UnitTestsForKilt(unittest.TestCase):
             with open("tests/mean.json", "w") as m:
                 json.dump(structure, m, indent=4)
 
-
-
     def test_download(self):
+        from kilt import labrinth
         try:
-            mod = kilt.search("zoom")[0]
+            mod = labrinth.search("zoom")[0]
             mod.download()
             success = "yay"
         except Exception:
@@ -50,8 +52,9 @@ class UnitTestsForKilt(unittest.TestCase):
         self.assertEqual("yay", success)
 
     def test_id_search(self):
+        from kilt import labrinth
         try:
-            mod = kilt.search(mod_id="AZomiSrC")[0]
+            mod = labrinth.search(mod_id="AZomiSrC")[0]
             if mod.name == "Hydrogen":
                 success = "yay"
             else:
@@ -61,7 +64,8 @@ class UnitTestsForKilt(unittest.TestCase):
         self.assertEqual("yay", success)
 
     def test_modlist(self):
-        kilt.search(modlist=True, search_array=["p", "lithium"])
+        from kilt import labrinth
+        labrinth.search(modlist=True, search_array=["p", "lithium"])
         with open("modlist.html") as file:
             res = file.read()
         with open("tests/correct.modlist.html") as file:
@@ -69,24 +73,33 @@ class UnitTestsForKilt(unittest.TestCase):
         self.assertEqual(correct, res)
 
     def test_number_of_mods(self):
+        from kilt import labrinth
         try:
-            kilt.get_number_of_mods()
+            labrinth.get_number_of_mods()
             success = "yay"
         except Exception as e:
             success = e
         self.assertEqual("yay", success)
 
     def test_search(self):
-        mod = kilt.search(search="lithium")[0]
+        from kilt import labrinth
+        mod = labrinth.search(search="lithium")[0]
         # print(mod.name)
         self.assertEqual("Lithium", mod.name)
 
     def test_search_array(self):
-        mods = kilt.search(search_array=["lithium", "sodium", "TwoFA", "galaciraft"])
+        from kilt import labrinth
+        mods = labrinth.search(search_array=["lithium", "sodium", "TwoFA", "galaciraft"])
         self.assertEqual(["Lithium", "Sodium", "TwoFA", "Galacticraft: Rewoven"], [item.name for item in mods])
 
     def test_single_search_array(self):
-        mod = kilt.search(search_array=["lithium"])[0]
+        from kilt import labrinth
+        mod = labrinth.search(search_array=["lithium"])[0]
         self.assertEqual("Lithium", mod.name)
 
-
+    def test_override_logging(self):
+        # this test MUST be done in isolation to work, and MUST be checked manually (for now?)
+        from kilt import config
+        config.global_level = 0  # NOTSET
+        from kilt import labrinth
+        labrinth.search("zoom")
