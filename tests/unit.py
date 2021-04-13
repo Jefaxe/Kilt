@@ -4,6 +4,7 @@ import unittest
 import os
 import json
 os.chdir("..")
+from kilt import labrinth
 
 
 
@@ -42,17 +43,11 @@ class UnitTestsForKilt(unittest.TestCase):
                 json.dump(structure, m, indent=4)
 
     def test_download(self):
-        from kilt import labrinth
-        try:
-            mod = labrinth.search("zoom")[0]
-            mod.download()
-            success = "yay"
-        except Exception:
-            success = traceback.format_exc()
-        self.assertEqual("yay", success)
+        mod = labrinth.search("zoom")[0]
+        mod.download()
+        self.assertEqual(True, mod.downloaded)
 
     def test_id_search(self):
-        from kilt import labrinth
         try:
             mod = labrinth.search(mod_id="AZomiSrC")[0]
             if mod.name == "Hydrogen":
@@ -64,7 +59,6 @@ class UnitTestsForKilt(unittest.TestCase):
         self.assertEqual("yay", success)
 
     def test_modlist(self):
-        from kilt import labrinth
         labrinth.search(modlist=True, search_array=["p", "lithium"])
         with open("modlist.html") as file:
             res = file.read()
@@ -73,33 +67,43 @@ class UnitTestsForKilt(unittest.TestCase):
         self.assertEqual(correct, res)
 
     def test_number_of_mods(self):
-        from kilt import labrinth
         try:
-            labrinth.get_number_of_mods()
-            success = "yay"
+            n = labrinth.get_number_of_mods()
+            success = "yay" if type(n) == int else "nay"
         except Exception as e:
             success = e
         self.assertEqual("yay", success)
 
     def test_search(self):
-        from kilt import labrinth
         mod = labrinth.search(search="lithium")[0]
         # print(mod.name)
         self.assertEqual("Lithium", mod.name)
 
     def test_search_array(self):
-        from kilt import labrinth
         mods = labrinth.search(search_array=["lithium", "sodium", "TwoFA", "galaciraft"])
         self.assertEqual(["Lithium", "Sodium", "TwoFA", "Galacticraft: Rewoven"], [item.name for item in mods])
 
     def test_single_search_array(self):
-        from kilt import labrinth
         mod = labrinth.search(search_array=["lithium"])[0]
         self.assertEqual("Lithium", mod.name)
 
-    def test_override_logging(self):
-        # this test MUST be done in isolation to work, and MUST be checked manually (for now?)
-        from kilt import config
-        config.global_level = 0  # NOTSET
-        from kilt import labrinth
-        labrinth.search("zoom")
+    def test_get_modlinks(self):
+        mod = labrinth.search("fabric")[0]
+        mod.web_open("home")
+        mod.web_open("discord")
+        mod.web_open("issues")
+        mod.web_open("source")
+        mod.web_open("donations")
+
+    def test_version(self):
+        from kilt import version
+        print(version.__version__)
+
+    def test_modloader(self):
+        fabric_mod = labrinth.search("fabric")[0]  # the fabric API
+        forge_mod = labrinth.search("oh")[0]  # Oh the Biomes You'll Go - forge only on modrinth
+        self.assertEqual([True, True], [fabric_mod.is_fabric, forge_mod.is_forge], "There has been some error in the .isFabric and/or .isForge Mod methods")
+
+    def test_author(self):
+        author = labrinth.search("sodium")[0].author
+        self.assertEqual("jellysquid3", author)

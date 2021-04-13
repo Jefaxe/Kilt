@@ -14,18 +14,26 @@ logging.basicConfig(format="%(levelname)s: %(message)s [%(lineno)d]", level=conf
 
 
 class Mod:
-    def __init__(self, mod_struct):
-        _localSite = version._site + "/"
+    def __init__(self, mod_struct, author="unknown"):
+        _localSite = version.get_site() + "/"
         http_response = urllib.request.urlopen
         self.downloads = mod_struct["downloads"]
+        self.author = author
+        self.author_url = "https://modrinth.com/user/" + self.author
         self.sha1 = None
         self.discord = mod_struct["discord_url"]
         self.donations = mod_struct["donation_urls"]
         self.date_published = mod_struct["published"]
         self.last_updated = mod_struct["updated"]
+        self.icon_link = mod_struct["icon_url"]
         self.license = mod_struct["license"]  # this is a dict
-        self.client = True if mod_struct["client_side"] in {"required", "optional"} else False
-        self.server = True if mod_struct["server_side"] in {"required", "optional"} else False
+        self.client_req = True if mod_struct["client_side"] == "required" else False
+        self.server_req = True if mod_struct["server_side"] == "required" else False
+        self.client_opt = True if mod_struct["client_side"] == "optional" else False
+        self.server_opt = True if mod_struct["server_side"] == "optional" else False
+        self.plugin = True if self.server_req and not self.client_req else False
+        self.client_only = True if self.client_req and not self.server_req else False
+        self.content_mod = True if self.client_req and self.server_req else False
         self.downloaded = False
         self.followers = mod_struct["followers"]
         self.categories = mod_struct["categories"]  # this is a list.
@@ -52,17 +60,15 @@ class Mod:
             self.latest_mcversion = None
 
         self.isFabric = self.is_fabric = True if "fabric" in self.loaders else False
-        self.isForge = self.is_fabric = True if "forge" in self.loaders else False
+        self.isForge = self.is_forge = True if "forge" in self.loaders else False
 
     def save_icon(self, path=None, createTree=False):
-        _localSite = version._site + "/"
         if path is None:
             path = "cache/" + self.name + ".png"
-        icon_url = json.loads(urllib.request.urlopen(_localSite + "/mod/" + self.id).read())["icon_url"]
         if createTree:
             os.makedirs("".join(path.rsplit("/", 1)[:-1]))
         with open(path, "wb") as file:
-            file.write(urllib.request.urlopen(icon_url).read())
+            file.write(urllib.request.urlopen(self.icon_link).read())
         basewidth = 64
         img = Image.open(path)
         wpercent = (basewidth / float(img.size[0]))
@@ -70,20 +76,21 @@ class Mod:
         img = img.resize((basewidth, hsize), Image.ANTIALIAS)
         img.save(path)
 
-    def web_open(self, siteType="home", index_of_donation=0):
+    def web_open(self, siteType="home", index_of_donation=0, open_new_tab=False):
+        new_window = 0 if open_new_tab else 1
         if siteType == "home":
-            webbrowser.open(self.home)
+            webbrowser.open(self.home, new=new_window)
             return True
         elif siteType == "discord":
-            webbrowser.open(self.discord)
+            webbrowser.open(self.discord, new=new_window)
             return True
         elif siteType == "donation":
-            webbrowser.open(self.donations[index_of_donation])
+            webbrowser.open(self.donations[index_of_donation], new=new_window)
         elif siteType == "source":
-            webbrowser.open(self.source)
+            webbrowser.open(self.source, new=new_window)
             return True
         elif siteType == "issues":
-            webbrowser.open(self.issues)
+            webbrowser.open(self.issues, new=new_window)
             return True
         else:
             return False
@@ -91,7 +98,7 @@ class Mod:
     def download(self, download_folder="mods", specific_version=None):
         # downloads
         http_response = urllib.request.urlopen
-        _localSite = version._site + "/"
+        _localSite = version.get_site() + "/"
         try:
             os.makedirs(download_folder, exist_ok=True)
             try:
@@ -138,7 +145,7 @@ class Mod:
             logging.critical(
                 "[Labrinth] COULD NOT DOWNLOAD MOD {} beacuse: {}".format(self.name,
                                                                           traceback.format_exc()))
-
+        return self.downloaded
 
 
 def removekey(d, key):
@@ -150,7 +157,7 @@ def removekey(d, key):
 def get_number_of_mods():
     number_of_mods = 0
     for i in range(1000000):
-        mod_list = json.loads(urllib.request.urlopen(version._query.format("", 100, "newest", i * 100 + 1)).read())[
+        mod_list = json.loads(urllib.request.urlopen(version.get_query().format("", 100, "newest", i * 100 + 1)).read())[
             "hits"]
         number_of_mods += len(mod_list)
         if len(mod_list) == 0:
@@ -158,14 +165,14 @@ def get_number_of_mods():
     return number_of_mods
 
 
-def search(search="", mod_id=None, logging_level=config.global_level, modlist=config.modlist_enabled_by_default,
+def search(search="", mod_id=None, logging_level=config.global_level, modlist=config.modlist_default,
            index="relevance",
            offset=0,
-           limit=10, saveDescriptionToFile=config.save_description_by_default, search_array=[],
+           limit=10, saveDescriptionToFile=config.description_default, search_array=[],
            repeat=1):
     # create local variables for CPython optimized lookup
     http_response = urllib.request.urlopen
-    _localSite = version._site + "/"
+    _localSite = version.get_site() + "/"
     MOD_OBJECTS = []
     logger = logging.getLogger()
     logger.setLevel(logging_level)
@@ -214,7 +221,7 @@ def search(search="", mod_id=None, logging_level=config.global_level, modlist=co
             MOD_OBJECTS.append(mod_object)
         for this_search in search_array:
             logging.debug("Searching for {}".format(this_search))
-            modSearch = version._query.format(this_search, limit, index, offset)
+            modSearch = version.get_query().format(this_search, limit, index, offset)
             logging.debug("Using {}".format(modSearch))
             modSearchJson = json.loads(http_response(modSearch).read())
             try:
@@ -235,7 +242,7 @@ def search(search="", mod_id=None, logging_level=config.global_level, modlist=co
             mod_struct = json.loads(
                 http_response(_localSite + str(mod_response["mod_id"].replace("local-", ""))).read())
             mod_struct_minus_body = removekey(mod_struct, "body")
-            mod_object = Mod(mod_struct)
+            mod_object = Mod(mod_struct, author=mod_response["author"])
             MOD_OBJECTS.append(mod_object)
             logging.debug("[Kilt] Mod Objects are: {}".format(MOD_OBJECTS))
             logging.debug(
@@ -265,4 +272,4 @@ def search(search="", mod_id=None, logging_level=config.global_level, modlist=co
 
 
 if __name__ == "__main__":
-    print("Don't run this!")
+    print("don't run this")
