@@ -1,6 +1,6 @@
 import semantic_version
 
-__version__ = semantic_version.Version("0.1.0-rc.1")
+__version__ = semantic_version.Version("0.1.0-rc.2")
 
 
 def get_site():

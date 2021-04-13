@@ -1,8 +1,4 @@
 
-class AlreadyDownloaded(FileExistsError):
-    pass
-
-
 class EndOfSearch(IndexError):
     pass
 
