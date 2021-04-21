@@ -62,4 +62,5 @@ Release Candidate: meant to be the full release, but I remember to add something
 
 >*DD.MM.YYYY: The date the build was published to pypi.org, or its platform for its {dev-stage}*
 
-Note that the package in build/lib/kilt is a copy of the latest build that has been uploaded to test.pypi.org or pypi.org
+Note that the package in build/lib/kilt/  is a copy of the latest build that has been uploaded to test.pypi.org or pypi.org, and an exact copy of that is in dist/kilt-{release}.tar.gz > kilt/
+
