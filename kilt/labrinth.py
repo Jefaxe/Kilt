@@ -46,7 +46,7 @@ class Mod(object):
         self.content_mod = True if self.client_req and self.server_req else False
 
     def init_version(self, mod_struct, spec_version):
-        _localSite = version.get_site() + "/"
+        _localSite = version.labrinth_mod + "/"
         http_response = urllib.request.urlopen
         try:
             mod_version_data = json.loads(
@@ -122,7 +122,7 @@ class Mod(object):
         specific_version = self.version if specific_version == "will default to self.version" else specific_version
         # downloads
         http_response = urllib.request.urlopen
-        _localSite = version.get_site() + "/"
+        _localSite = version.labrinth_mod + "/"
         try:
             os.makedirs(download_folder, exist_ok=True)
             try:
@@ -199,15 +199,25 @@ def get(search="", mod_id=None, logging_level=config.global_level, modlist=confi
         index="relevance",
         offset=0,
         limit=10, saveDescriptionToFile=config.description_default, search_array=[],
-        repeat=1, mod_versions=[], categories_meilisearch=""):
+        repeat=1, mod_versions=[], categories_meilisearch="", license_=None, mcversions=[], client_side=None,
+        server_side=None):
     # note mod_versions MUST be indexed 1-1 with search_array!!
     # create local variables for CPython optimized lookup
     http_response = urllib.request.urlopen
-    _localSite = version.get_site() + "/"
+    _localSite = version.labrinth_mod + "/"
     MOD_OBJECTS = []
     logger = logging.getLogger()
     logger.setLevel(logging_level)
     # make sure arguments are correct
+    side_dict = {"True": "required",
+                 "False": "unsupported",
+                 "required": "required",
+                 "unsupported": "unsupported",
+                 "None": None}
+    client_side = str(client_side)
+    server_side = str(server_side)
+    client_side = side_dict[client_side]
+    server_side = side_dict[server_side]
     if index not in {"newest", "updated", "downloads", "relevance"}:
         raise error.InvalidArgument(
             "{} (index/sort) needs to be either 'newest', 'updated', 'downloads', or 'relevance'".format(index))
@@ -217,7 +227,10 @@ def get(search="", mod_id=None, logging_level=config.global_level, modlist=confi
         raise error.InvalidArgument("{} (offset) is not in range 0, 100, or it is not an integer".format(offset))
     if type(repeat) is not int or repeat <= 0:
         raise error.InvalidArgument("{} (repeat) is not an integer, or it is below 0.".format(repeat))
-
+    if client_side not in {"required", "unsupported", None}:
+        raise error.InvalidArgument("{} (client_side) needs to be either `required` or `unsupported`")
+    if server_side not in {"required", "unsupported", None}:
+        raise error.InvalidArgument("{} (server_side) needs to be either `required` or `unsupported`")
     # patch arguments
     if search != "":
         logging.info(
@@ -254,12 +267,37 @@ def get(search="", mod_id=None, logging_level=config.global_level, modlist=confi
             if len(mod_versions):  # not []
                 mod_ver = mod_versions[0]
             else:
-                mod_ver = None
+                mod_ver = mcversions[0]
             mod_object = Mod(mod_struct, spec_version=mod_ver)
             MOD_OBJECTS.append(mod_object)
         for this_search in search_array:
             logging.debug("Searching for {}".format(this_search))
-            modSearch = version.get_query().format(this_search, limit, index, offset, categories_meilisearch)
+            facets_bool = False
+            facets_string = "["
+            first_done = False
+            if license_ is not None:
+                facets_string += '["license:{}"]'.format(license_) + ","
+                facets_bool = True
+                first_done = True
+            if mcversions is not []:
+                for mcv in mcversions:
+                    facets_string += '["versions:{}"]'.format(mcv) + ","
+                facets_bool = True
+            if client_side is not None:
+                facets_string += '["client_side:{}"]'.format(client_side)
+                facets_bool = True
+            if server_side is not None:
+                facets_string += '["server_side:{}"]"'.format(server_side)
+                facets_bool = True
+            if facets_bool:
+                facets_string = facets_string[:-1]
+                facets_string += "]"
+                facets = urllib.parse.quote(facets_string)
+                modSearch = version.labrinth_mod + "?query={}&limit={}&index={}&offset={}&filters={}&facets={f}".format(
+                    this_search, limit, index, offset, categories_meilisearch, f=facets)
+            else:
+                modSearch = version.labrinth_mod + "?query={}&limit={}&index={}&offset={}&filters={}".format(
+                    this_search, limit, index, offset, categories_meilisearch)
             logging.debug("Using {}".format(modSearch))
             modSearchJson = json.loads(http_response(modSearch).read())
             try:

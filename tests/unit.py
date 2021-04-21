@@ -102,8 +102,11 @@ class UnitTestsForKilt(unittest.TestCase):
 
     def test_version(self):
         from kilt import version
-        print(version.__version__)
+        print(version.update_log(outputfile="tests/version.txt"))
 
+    def test_facets_search(self):
+        mod = labrinth.get(mcversions=["1.14"], license_="MIT", server_side="unsupported")[0]
+        self.assertEqual("NBT Tooltip", mod.name)
     def test_modloader(self):
         fabric_mod = labrinth.search("fabric")[0]  # the fabric API
         forge_mod = labrinth.search("oh")[0]  # Oh the Biomes You'll Go - forge only on modrinth
@@ -133,7 +136,6 @@ class UnitTestsForKilt(unittest.TestCase):
 
     def test_no_search(self):
         mods = labrinth.get()
-        print(mods)
         self.assertGreaterEqual(len(mods), 1)
 
     def test_create_custom_mod_object(self):

@@ -8,7 +8,7 @@
     "single_search_array": 0.9928823772229647,
     "override_logging": 1.0027334425184462,
     "get_modlinks": 2.149132435138409,
-    "version": 0.0,
+    "version": 0.00041099598533228825,
     "modloader": 2.4617240795722375,
     "author": 0.9890169363755447,
     "download_specific": 3.142508798175388,
@@ -16,5 +16,6 @@
     "download_icon": 1.4414830207824707,
     "no_search": 0.5789027214050293,
     "meilisearch": 1.0267804265022278,
-    "create_custom_mod_object": 0.3903415997823079
+    "create_custom_mod_object": 0.3903415997823079,
+    "facets_search": 0.9920214414596558
 }

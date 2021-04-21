@@ -51,4 +51,9 @@ def change_configs():
     kilt.search("zoom")
 
 
-change_configs()
+def facets_search():
+    import kilt.labrinth as m
+    mod = m.get(logging_level=0, mcversions=["1.14"], license_="MIT", server_side="unsupported")[0]
+    mod.web_open("home")
+
+facets_search()
