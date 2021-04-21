@@ -1,7 +1,7 @@
 name: Unit Tests for Kilt Labrinth.
 on: [push]
-job:
+jobs:
    basic-no-break:
-   name: Test to make sure nothing broke.
-    runs-on: windows-latest
-    - run: python3 -m unittest unit.UnitTestsForKilt
+      name: Test to make sure nothing broke.
+      runs-on: windows-latest
+      if: python3 -m unittest tests/unit.UnitTestsForKilt
