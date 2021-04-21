@@ -61,3 +61,5 @@ Release Candidate: meant to be the full release, but I remember to add something
 >*stage-update: The number of releases in the current {dev-stage}*
 
 >*DD.MM.YYYY: The date the build was published to pypi.org, or its platform for its {dev-stage}*
+
+Note that the package in build/lib/kilt is a copy of the latest build that has been uploaded to test.pypi.org or pypi.org
