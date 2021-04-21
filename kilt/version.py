@@ -30,7 +30,8 @@ def update_log(outputfile=False):
         _update += "Patch {}\n".format(__version__.patch)
     _update += "Changelog: {}\n".format(_changelog)
     if len(__version__.prerelease):
-        _update += """Note that Development Builds can be unstable:
+        _update += """
+        Note that Development Builds can be unstable:
         Make sure to report bugs at https://github.com/Jefaxe/Kilt/issues"""
     _update += """
     This build was made on {}""".format(date.strftime("%A, %d %B %Y"))

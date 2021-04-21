@@ -2,6 +2,7 @@ Added facets support
     0.1 Beta 8
     Changelog: 
         Added full facets support for searching. 
-Note that Development Builds can be unstable:
+
+        Note that Development Builds can be unstable:
         Make sure to report bugs at https://github.com/Jefaxe/Kilt/issues
     This build was made on Wednesday, 21 April 2021
