@@ -152,4 +152,4 @@ class UnitTestsForKilt(unittest.TestCase):
                       "wiki_url": "https://github.com/Developer-Doge/Fox-Origin/wiki", "discord_url": None,
                       "donation_urls": []}
 
-        custom_mod = labrinth.mod_class(mod_struct)
+        custom_mod = labrinth.Mod(mod_struct)
