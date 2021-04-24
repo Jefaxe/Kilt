@@ -10,7 +10,7 @@ from PIL import Image
 
 # sets up logging
 logging.basicConfig(format="%(levelname)s: %(message)s [%(lineno)d]", level=config.global_level)
-
+logger = logging.getLogger()
 
 class Mod(object):
     def define_page(self, mod_struct):
@@ -45,7 +45,7 @@ class Mod(object):
         self.client_only = True if self.client_req and not self.server_req else False
         self.content_mod = True if self.client_req and self.server_req else False
 
-    def init_version(self, mod_struct, spec_version):
+    def init_version(self, mod_struct, spec_version, mcversion=None):
         _localSite = version.labrinth_mod + "/"
         http_response = urllib.request.urlopen
         try:
@@ -68,7 +68,7 @@ class Mod(object):
             self.loaders = \
                 mod_version_data["loaders"]
             self.latest_mcversion = \
-                mod_version_data["game_versions"][-1]
+                mod_version_data["game_versions"][-1] if mcversion is None else mcversion
         except IndexError:  # there is no version
             self.version = None
             self.loaders = []
@@ -76,10 +76,10 @@ class Mod(object):
         self.isFabric = self.is_fabric = True if "fabric" in self.loaders else False
         self.isForge = self.is_forge = True if "forge" in self.loaders else False
 
-    def __init__(self, mod_struct, author="unknown", spec_version=None):
+    def __init__(self, mod_struct, author="unknown", spec_version=None, mcversion=None):
         self.define_page(mod_struct)
         self.define_stats(mod_struct, author=author)
-        self.init_version(mod_struct, spec_version=spec_version)
+        self.init_version(mod_struct, spec_version=spec_version, mcversion=mcversion)
         self.define_categories(mod_struct)
         self.sha1 = None
         self.downloaded = False
@@ -180,15 +180,9 @@ def removekey(d, key):
 
 
 def get_number_of_mods():
-    number_of_mods = 0
-    for i in range(1000000):  # this means that the mod count is maxed at 1,000,000. Will increase if necessary.
-        mod_list = \
-            json.loads(urllib.request.urlopen(version.get_query().format("", 100, "newest", i * 100 + 1, "")).read())[
-                "hits"]
-        number_of_mods += len(mod_list)
-        if len(mod_list) == 0:
-            break
-    return number_of_mods
+    return json.loads(urllib.request.urlopen(version.labrinth_mod+"?").read())[
+                "total_hits"]
+
 
 
 # alias
@@ -214,10 +208,9 @@ def get(search="", mod_id=None, logging_level=config.global_level, modlist=confi
                  "required": "required",
                  "unsupported": "unsupported",
                  "None": None}
-    client_side = str(client_side)
-    server_side = str(server_side)
-    client_side = side_dict[client_side]
-    server_side = side_dict[server_side]
+    client_side = side_dict[str(client_side)]
+    server_side = side_dict[str(server_side)]
+    logging.debug("Server side: {} | Client Side: {}".format(server_side, client_side))
     if index not in {"newest", "updated", "downloads", "relevance"}:
         raise error.InvalidArgument(
             "{} (index/sort) needs to be either 'newest', 'updated', 'downloads', or 'relevance'".format(index))
@@ -259,27 +252,22 @@ def get(search="", mod_id=None, logging_level=config.global_level, modlist=confi
 
                                 <body>""")
     for offset in range(offset, repeat):
+        mod_ver = mod_versions[offset] if mod_versions else None
         if mod_id:
             try:
                 mod_struct = json.loads(http_response(_localSite + mod_id).read())
             except urllib.error.HTTPError:
                 raise error.InvalidModId("{} is not a valid modrinth mod id".format(mod_id))
-            if len(mod_versions):  # not []
-                mod_ver = mod_versions[0]
-            else:
-                mod_ver = mcversions[0]
-            mod_object = Mod(mod_struct, spec_version=mod_ver)
+            mod_object = Mod(mod_struct, spec_version=mod_ver, mcversion=mcversions[0] if mcversions else None)
             MOD_OBJECTS.append(mod_object)
         for this_search in search_array:
             logging.debug("Searching for {}".format(this_search))
             facets_bool = False
             facets_string = "["
-            first_done = False
             if license_ is not None:
                 facets_string += '["license:{}"]'.format(license_) + ","
                 facets_bool = True
-                first_done = True
-            if mcversions is not []:
+            if mcversions:
                 for mcv in mcversions:
                     facets_string += '["versions:{}"]'.format(mcv) + ","
                 facets_bool = True
@@ -290,6 +278,7 @@ def get(search="", mod_id=None, logging_level=config.global_level, modlist=confi
                 facets_string += '["server_side:{}"]"'.format(server_side)
                 facets_bool = True
             if facets_bool:
+                logging.debug("Fancy! Using facets i see!")
                 facets_string = facets_string[:-1]
                 facets_string += "]"
                 facets = urllib.parse.quote(facets_string)

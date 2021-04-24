@@ -74,9 +74,10 @@ class UnitTestsForKilt(unittest.TestCase):
     def test_number_of_mods(self):
         try:
             n = labrinth.get_number_of_mods()
+            print(n)
             success = "yay" if type(n) == int else "nay"
         except Exception as e:
-            success = e
+            success = traceback.format_exc()
         self.assertEqual("yay", success)
 
     def test_search(self):
@@ -92,17 +93,9 @@ class UnitTestsForKilt(unittest.TestCase):
         mod = labrinth.search(search_array=["lithium"])[0]
         self.assertEqual("Lithium", mod.name)
 
-    def test_get_modlinks(self):
-        mod = labrinth.search("fabric")[0]
-        mod.web_open("home")
-        mod.web_open("discord")
-        mod.web_open("issues")
-        mod.web_open("source")
-        mod.web_open("donations")
-
     def test_version(self):
         from kilt import version
-        print(version.update_log(outputfile="tests/version.txt"))
+        version.update_log(outputfile="tests/version.txt")
 
     def test_facets_search(self):
         mod = labrinth.get(mcversions=["1.14"], license_="MIT", server_side="unsupported")[0]
@@ -114,7 +107,7 @@ class UnitTestsForKilt(unittest.TestCase):
                          "There has been some error in the .isFabric and/or .isForge Mod methods")
 
     def test_author(self):
-        author = labrinth.search("sodium")[0].author
+        author = labrinth.get("sodium")[0].author
         self.assertEqual("jellysquid3", author)
 
     def test_search_spec_version(self):
@@ -138,6 +131,8 @@ class UnitTestsForKilt(unittest.TestCase):
         mods = labrinth.get()
         self.assertGreaterEqual(len(mods), 1)
 
+    def test_mcversion_check(self):
+        mod = labrinth.get("reforged", mcversions=["1.9.4"])
     def test_create_custom_mod_object(self):
         mod_struct = {"id": "eaqEFY9F", "slug": "wiidudes-custom-origins", "team": "FuRASOII",
                       "title": "WiiDude's Custom Origins", "description": "An addon mod for origins.",

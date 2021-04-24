@@ -1,13 +1,12 @@
 import semantic_version
 import datetime
 
-__version__ = semantic_version.Version("0.1.0-beta.8+build.2021.04.21")
-__name__ = "Kilt"
-_feature = "Initial release; modrinth support"
-_patch = None
-_commit = "Added facets support"
-_changelog = """
-        Added full facets support for searching. """
+__version__ = semantic_version.Version("0.1.0-rc.3+build.2021.04.24")
+_patch_note = None
+_commit = "It should be ready..."
+_changelog = """Incremented version
+    Fixed Issues created in beta 7.1 & 8
+    labrinth.get_number_of_mods now just uses the modrinth-supplied 'total_hits'. (I am an idiot, i was counting them before lol)"""
 
 prerelease_dict = {
     "alpha": "Alpha",
@@ -27,8 +26,8 @@ def update_log(outputfile=False):
             ".".join(__version__.prerelease[1:])) if len(__version__.prerelease) else "")
     )
     if __version__.patch != 0:
-        _update += "Patch {}\n".format(__version__.patch)
-    _update += "Changelog: {}\n".format(_changelog)
+        _update += "Patch {}\n: {}".format(__version__.patch, _patch_note)
+    _update += "Changelog: {}".format(_changelog)
     if len(__version__.prerelease):
         _update += """
         Note that Development Builds can be unstable:
@@ -46,3 +45,6 @@ labrinth_mod = "https://api.modrinth.com/api/v1/mod"
 kilt_doc = "https://github.com/Jefaxe/Kilt/wiki"
 
 labrinth_doc = "https://github.com/modrinth/labrinth/wiki/API-Documentation"
+
+if __name__ == "__main__":
+    print(update_log())
