@@ -35,9 +35,8 @@ Kilt is split into modules. They are `error` (for custom exceptions), `__init__`
 `+--config.py: `[Runtime Config](https://github.com/Jefaxe/Kilt/wiki/Runtime-Configuration)  
 `+--error.py: Custom Exceptions for Kilt` [Source](https://github.com/Jefaxe/Kilt/blob/dev/kilt/error.py)       
 `+--version.py: metadata`[Source](https://github.com/Jefaxe/Kilt/blob/dev/kilt/version.py)    
-`+--labrinth.py: Modrinth API interaction` [Source](https://github.com/Jefaxe/Kilt/blob/dev/kilt/labrinth.py)  
-`+--curse.py: (Planned for 0.2.0) Interaction with CurseForge via HTML scrapping (BeautifulSoup)`[Project](https://github.com/Jefaxe/Kilt/projects/1)    
-`+--planetminecaft.py: (Planned 0.3.0) Interaction with PlanetMinecraft via HTML scrapping (BeautifulSoup)`[Project](https://github.com/Jefaxe/Kilt/projects/2)   
+`+--labrinth.py: Modrinth API interaction` [Source](https://github.com/Jefaxe/Kilt/blob/dev/kilt/labrinth.py)
+`+--planetminecaft.py: (Planned 0.2.0) Interaction with PlanetMinecraft via HTML scrapping (BeautifulSoup)`[Project](https://github.com/Jefaxe/Kilt/projects/2)   
 `+--common.py (Planned 0.2.0) Common code for all modules`
 
 # Versioning
@@ -45,7 +44,7 @@ The package/project uses [semver](https://semver.org) 2.0.0.
 The package distribution uses [PEP 440](https://www.python.org/dev/peps/pep-0440/) (Only because it is a literal requirement, it should use SemVer )
 
 
-**{MAJOR}.{feature update}.{bugfix}-{dev-stage}.{stage-update}+build.{DD.MM.YYYY}**
+**{MAJOR}.{feature update}.{bugfix}-{dev-stage}.{stage-update}+build.{YYYY.MM.DD}**
 
 >*MAJOR: Will be 0 unless there is a backwards-incompatible change that occurs in a stable branch.*
 
@@ -60,7 +59,11 @@ Release Candidate: meant to be the full release, but I remember to add something
 
 >*stage-update: The number of releases in the current {dev-stage}*
 
->*DD.MM.YYYY: The date the build was published to pypi.org, or its platform for its {dev-stage}*
+>*YYYY.MM.DD: The date the build was published to pypi.org, or its platform for its {dev-stage}*
 
 Note that the package in build/lib/kilt/  is a copy of the latest build that has been uploaded to test.pypi.org or pypi.org, and an exact copy of that is in dist/kilt-{release}.tar.gz > kilt/
 
+# Planning:
+
+Add PlanetMinecraft support
+Switch from `urllib.request` to `requests`

@@ -3,10 +3,10 @@ import os
 import semantic_version
 import datetime
 
-__version__ = semantic_version.Version("0.1.0-rc.4+build.2021.05.02")
+__version__ = semantic_version.Version("0.1.0-rc.4.1+build.2021.05.02")
 _patch_note = None
-_commit = "Bug Fixes yay!"
-_changelog = """Removed mutable objects in function arguments"""
+_commit = "README.md Fixes"
+_changelog = """Corrected README.md"""
 
 prerelease_dict = {
     "alpha": "Alpha",
