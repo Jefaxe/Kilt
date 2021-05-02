@@ -8,9 +8,16 @@ import webbrowser
 from kilt import error, config, version
 from PIL import Image
 
+labrinth_mod = "https://api.modrinth.com/api/v1/mod"
+
+kilt_doc = "https://github.com/Jefaxe/Kilt/wiki"
+
+labrinth_doc = "https://github.com/modrinth/labrinth/wiki/API-Documentation"
+
 # sets up logging
 logging.basicConfig(format="%(levelname)s: %(message)s [%(lineno)d]", level=config.global_level)
 logger = logging.getLogger()
+
 
 class Mod(object):
     def define_page(self, mod_struct):
@@ -46,7 +53,7 @@ class Mod(object):
         self.content_mod = True if self.client_req and self.server_req else False
 
     def init_version(self, mod_struct, spec_version, mcversion=None):
-        _localSite = version.labrinth_mod + "/"
+        _localSite = labrinth_mod + "/"
         http_response = urllib.request.urlopen
         try:
             mod_version_data = json.loads(
@@ -84,20 +91,19 @@ class Mod(object):
         self.sha1 = None
         self.downloaded = False
 
-    def save_icon(self, path=None, createTree=True):
+    def save_icon(self, path=None, createTree=True, resolution=512):
         if path is None:
             path = "icons/" + self.name + ".png"
         if createTree:
             os.makedirs("".join(path.rsplit("/", 1)[:-1]), exist_ok=True)
         with open(path, "wb") as file:
             file.write(urllib.request.urlopen(self.icon_link).read())
-        basewidth = 64
-        img = Image.open(path)
-        wpercent = (basewidth / float(img.size[0]))
-        hsize = int((float(img.size[1]) * float(wpercent)))
-        img = img.resize((basewidth, hsize), Image.ANTIALIAS)
-        img.save(path)
-        return path
+        if resolution != 512:
+            img = Image.open(path)
+            wpercent = (resolution / float(img.size[0]))
+            hsize = int((float(img.size[1]) * float(wpercent)))
+            img = img.resize((resolution, hsize), Image.ANTIALIAS)
+            img.save(path)
 
     def web_open(self, siteType="home", index_of_donation=0, open_new_tab=False):
         new_window = 1 if open_new_tab else 0
@@ -122,7 +128,7 @@ class Mod(object):
         specific_version = self.version if specific_version == "will default to self.version" else specific_version
         # downloads
         http_response = urllib.request.urlopen
-        _localSite = version.labrinth_mod + "/"
+        _localSite = labrinth_mod + "/"
         try:
             os.makedirs(download_folder, exist_ok=True)
             try:
@@ -180,9 +186,8 @@ def removekey(d, key):
 
 
 def get_number_of_mods():
-    return json.loads(urllib.request.urlopen(version.labrinth_mod+"?").read())[
-                "total_hits"]
-
+    return json.loads(urllib.request.urlopen(labrinth_mod + "?").read())[
+        "total_hits"]
 
 
 # alias
@@ -192,13 +197,19 @@ number_of_mods = get_number_of_mods
 def get(search="", mod_id=None, logging_level=config.global_level, modlist=config.modlist_default,
         index="relevance",
         offset=0,
-        limit=10, saveDescriptionToFile=config.description_default, search_array=[],
-        repeat=1, mod_versions=[], categories_meilisearch="", license_=None, mcversions=[], client_side=None,
+        limit=10, saveDescriptionToFile=config.description_default, search_array=None,
+        repeat=1, mod_versions=None, categories_meilisearch="", license_=None, mcversions=None, client_side=None,
         server_side=None):
     # note mod_versions MUST be indexed 1-1 with search_array!!
     # create local variables for CPython optimized lookup
+    if mod_versions is None:
+        mod_versions = []
+    if search_array is None:
+        search_array = []
+    if mcversions is None:
+        mcversions = []
     http_response = urllib.request.urlopen
-    _localSite = version.labrinth_mod + "/"
+    _localSite = labrinth_mod + "/"
     MOD_OBJECTS = []
     logger = logging.getLogger()
     logger.setLevel(logging_level)
@@ -282,10 +293,10 @@ def get(search="", mod_id=None, logging_level=config.global_level, modlist=confi
                 facets_string = facets_string[:-1]
                 facets_string += "]"
                 facets = urllib.parse.quote(facets_string)
-                modSearch = version.labrinth_mod + "?query={}&limit={}&index={}&offset={}&filters={}&facets={f}".format(
+                modSearch = labrinth_mod + "?query={}&limit={}&index={}&offset={}&filters={}&facets={f}".format(
                     this_search, limit, index, offset, categories_meilisearch, f=facets)
             else:
-                modSearch = version.labrinth_mod + "?query={}&limit={}&index={}&offset={}&filters={}".format(
+                modSearch = labrinth_mod + "?query={}&limit={}&index={}&offset={}&filters={}".format(
                     this_search, limit, index, offset, categories_meilisearch)
             logging.debug("Using {}".format(modSearch))
             modSearchJson = json.loads(http_response(modSearch).read())

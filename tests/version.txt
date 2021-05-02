@@ -1,7 +1,0 @@
-It should be ready...
-    0.1 Release Candidate 3
-    Changelog: Incremented version
-    Fixed Issues created in beta 7.1 & 8
-        Note that Development Builds can be unstable:
-        Make sure to report bugs at https://github.com/Jefaxe/Kilt/issues
-    This build was made on Saturday, 24 April 2021

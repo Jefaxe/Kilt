@@ -1,5 +1,7 @@
 @echo off
 
+python kilt/version.py
+
 if "%~1%" == "test"(del /q dist
 del /q build
 del /q Kilt.egg-info
