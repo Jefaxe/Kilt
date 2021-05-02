@@ -1,0 +1,6 @@
+README.md Fixes
+    0.1 Release Candidate 4.1
+    Changelog: Corrected README.md
+        Note that Development Builds can be unstable:
+        Make sure to report bugs at https://github.com/Jefaxe/Kilt/issues
+    This build was made on Sunday, 02 May 2021
