@@ -1,3 +1,4 @@
+import filecmp
 import time
 import traceback
 import unittest
@@ -117,11 +118,8 @@ class UnitTestsForKilt(unittest.TestCase):
     def test_download_icon(self):
         mod = labrinth.get("hydrogen")[0]
         mod.save_icon()
-        with open("icons/" + mod.name + ".png", "rb") as fp:
-            res = fp.read()
-        with open("tests/correct/" + mod.name + ".png", "rb") as fp:
-            correct = fp.read()
-        self.assertEqual(correct, res)
+        res = filecmp.cmp("tests/correct/Hydrogen.png", "icons/Hydrogen.png")
+        self.assertEqual(True, res)
 
     def test_meilisearch(self):
         mod = labrinth.get(categories_meilisearch="categories='forge' AND NOT categories='fabric'")[0]

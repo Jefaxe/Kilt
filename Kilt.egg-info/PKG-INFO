@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: Kilt
-Version: 0.1.0rc2
+Version: 0.1.0rc4
 Summary: A Python Library for for high-end interaction wit the Modrinth API/labrinth.
 Home-page: https://github.com/Jefaxe/Kilt
 Author: Jefaxe
@@ -18,12 +18,18 @@ Description: ## Kilt
         ## Stable:    
         `pip install kilt`
         
-        # Usage
-        See the WIP [wiki](https://github.com/Jefaxe/Kilt/wiki)
+        # FAQ
+        Q: Why am I getting `AttributeError: 'list' object has no attribute 'name'`    
+        A: `labrinth.get` (or `labrinth.search`) returns a **list** of Mod objects. Not a single one. So to access the first element, just put `[0]` at the end of you call to `labrinth.get` or `labrinth.search` (aliases)
+        
+        Q: Why do some attempts at `{Mod object}.download` raise `error.NoVersionFound`?   
+        A: Modrinth allows a mod to be uploaded without a version, so trying to download *would* raise an `IndexError`, and not have the desired result, so I decided to have my own error for it.
+        
         
         # Changelog
         See [CHANGELOG.md](https://github.com/Jefaxe/Kilt/blob/dev/CHANGELOG.md)
-        Note that versions prior to v0.1.0-beta.6 are very messed up should be ignored.
+        Note that versions with the tag "w" are very messed up, and are only kept because I don't want to delete versions. Never use these, ever. They don't work
+        
         
         # Modules
         Kilt is split into modules. They are `error` (for custom exceptions), `__init__` (needed),
@@ -32,7 +38,7 @@ Description: ## Kilt
         
         ## Structure
         
-        `kilt`  
+        >`kilt`  
         `+--__init__.py: Needed`  
         `+--config.py: `[Runtime Config](https://github.com/Jefaxe/Kilt/wiki/Runtime-Configuration)  
         `+--error.py: Custom Exceptions for Kilt` [Source](https://github.com/Jefaxe/Kilt/blob/dev/kilt/error.py)       
@@ -41,11 +47,37 @@ Description: ## Kilt
         `+--curse.py: (Planned for 0.2.0) Interaction with CurseForge via HTML scrapping (BeautifulSoup)`[Project](https://github.com/Jefaxe/Kilt/projects/1)    
         `+--planetminecaft.py: (Planned 0.3.0) Interaction with PlanetMinecraft via HTML scrapping (BeautifulSoup)`[Project](https://github.com/Jefaxe/Kilt/projects/2)   
         `+--common.py (Planned 0.2.0) Common code for all modules`
+        
+        # Versioning
+        The package/project uses [semver](https://semver.org) 2.0.0. 
+        The package distribution uses [PEP 440](https://www.python.org/dev/peps/pep-0440/) (Only because it is a literal requirement, it should use SemVer )
+        
+        
+        **{MAJOR}.{feature update}.{bugfix}-{dev-stage}.{stage-update}+build.{DD.MM.YYYY}**
+        
+        >*MAJOR: Will be 0 unless there is a backwards-incompatible change that occurs in a stable branch.*
+        
+        >*feature update: it adds features*
+        
+        >*bugfix: A bugfix for a version, may be made after the next {feature update} has started development, but will loose support when {feature update} hits stable branch.*
+        
+        >*dev-stage:   
+        Alpha: only available in source, and may break at any time, or be broken.  
+        Beta: May be skipped, or just have one beta. More stable than Alpha, and/or closer to release.   
+        Release Candidate: meant to be the full release, but I remember to add something else. Last RC will be the same (except version data) as full release.*
+        
+        >*stage-update: The number of releases in the current {dev-stage}*
+        
+        >*DD.MM.YYYY: The date the build was published to pypi.org, or its platform for its {dev-stage}*
+        
+        Note that the package in build/lib/kilt/  is a copy of the latest build that has been uploaded to test.pypi.org or pypi.org, and an exact copy of that is in dist/kilt-{release}.tar.gz > kilt/
+        
+        
 Keywords: Minecraft,,Modding,Labrinth,Kilt,Jefaxe,Modrinth
 Platform: UNKNOWN
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
 Classifier: Topic :: Software Development :: Build Tools
-Classifier: License :: OSI Approved :: MIT License
+Classifier: License :: MIT License
 Classifier: Programming Language :: Python :: 3.9
 Description-Content-Type: text/markdown

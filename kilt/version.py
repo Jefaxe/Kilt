@@ -1,12 +1,12 @@
+import os
+
 import semantic_version
 import datetime
 
-__version__ = semantic_version.Version("0.1.0-rc.3+build.2021.04.24")
+__version__ = semantic_version.Version("0.1.0-rc.4+build.2021.05.02")
 _patch_note = None
-_commit = "It should be ready..."
-_changelog = """Incremented version
-    Fixed Issues created in beta 7.1 & 8
-    labrinth.get_number_of_mods now just uses the modrinth-supplied 'total_hits'. (I am an idiot, i was counting them before lol)"""
+_commit = "Bug Fixes yay!"
+_changelog = """Removed mutable objects in function arguments"""
 
 prerelease_dict = {
     "alpha": "Alpha",
@@ -17,7 +17,7 @@ prerelease_dict = {
 date = datetime.date(int(__version__.build[1]), int(__version__.build[2]), int(__version__.build[3]))
 
 
-def update_log(outputfile=False):
+def update_log(outputfile=False, append_build=False):
     _update = """{commit}
     {version}
     """.format(
@@ -34,17 +34,12 @@ def update_log(outputfile=False):
         Make sure to report bugs at https://github.com/Jefaxe/Kilt/issues"""
     _update += """
     This build was made on {}""".format(date.strftime("%A, %d %B %Y"))
-    if outputfile:
-        with open(outputfile, "w") as fp:
+
+    os.makedirs("version/", exist_ok=True)
+    with open(f"version/{__version__}.txt", "w") as fp:
             fp.write(_update)
     return _update
 
-
-labrinth_mod = "https://api.modrinth.com/api/v1/mod"
-
-kilt_doc = "https://github.com/Jefaxe/Kilt/wiki"
-
-labrinth_doc = "https://github.com/modrinth/labrinth/wiki/API-Documentation"
 
 if __name__ == "__main__":
     print(update_log())
